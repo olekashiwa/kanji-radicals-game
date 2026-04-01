@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>漢字マスター | Kanji Radicals Master</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/cards.css">
+    <link rel="stylesheet" href="css/quiz.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-auth-compat.js"></script>
+    
+    <!-- Конфигурация окружения (замените на свои значения) -->
+    <script>
+        window.ENV = {
+            FIREBASE_API_KEY: 'your_api_key_here',
+            FIREBASE_AUTH_DOMAIN: 'your_project.firebaseapp.com',
+            FIREBASE_PROJECT_ID: 'your_project_id',
+            FIREBASE_STORAGE_BUCKET: 'your_project.appspot.com',
+            FIREBASE_MESSAGING_SENDER_ID: 'your_sender_id',
+            FIREBASE_APP_ID: 'your_app_id'
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="game-header">
+            <div class="player-stats">
+                <div class="stat-card">👤 <span id="playerName">Гость</span></div>
+                <div class="stat-card">🏆 Уровень <span id="playerLevel">1</span></div>
+                <div class="stat-card">✨ XP: <span id="playerXp">0</span></div>
+                <div class="stat-card">💰 Баллы: <span id="playerPoints">0</span></div>
+            </div>
+            <div class="xp-bar">
+                <div class="xp-fill" id="xpFill"></div>
+            </div>
+            <button id="loginBtn">🔑 Войти</button>
+            <button id="logoutBtn" class="btn-logout">🚪 Выйти</button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="study">📚 Изучение</button>
+            <button class="tab-btn" data-tab="quiz">🎯 Тестирование</button>
+            <button class="tab-btn" data-tab="battle">⚔️ Битва</button>
+            <button class="tab-btn" data-tab="leaderboard">🏆 Таблица лидеров</button>
+            <button class="tab-btn" data-tab="progress">📊 Мой прогресс</button>
+        </div>
+
+        <!-- Study Panel -->
+        <div id="studyPanel" class="tab-panel active-panel">
+            <div class="controls">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="🔍 Поиск по номеру, символу или названию...">
+                </div>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">Все</button>
+                    <button class="filter-btn" data-filter="strong">💪 Сильные</button>
+                    <button class="filter-btn" data-filter="medium">📘 Средние</button>
+                </div>
+                <button id="exportAnkiBtn">🃏 Экспорт в Anki</button>
+            </div>
+            <div id="radicalsGrid" class="radicals-grid"></div>
+        </div>
+
+        <!-- Quiz Panel -->
+        <div id="quizPanel" class="tab-panel">
+            <div class="quiz-container">
+                <div class="quiz-header">
+                    <div class="quiz-mode-selector">
+                        <button class="quiz-mode-btn active" data-quiz-mode="meaning">📖 Значение</button>
+                        <button class="quiz-mode-btn" data-quiz-mode="reading">🔊 Чтение</button>
+                        <button class="quiz-mode-btn" data-quiz-mode="writing">✍️ Написание</button>
+                    </div>
+                    <div class="quiz-stats">
+                        <div class="quiz-stat">📊 Всего: <span id="totalCount">0</span></div>
+                        <div class="quiz-stat">✅ Правильно: <span id="correctCount">0</span></div>
+                        <div class="quiz-stat">⭐ Баллов: <span id="quizPoints">0</span></div>
+                    </div>
+                    <div class="quiz-progress">
+                        <div class="quiz-progress-fill" id="quizProgressFill"></div>
+                    </div>
+                </div>
+                <div id="quizContainer"></div>
+            </div>
+        </div>
+
+        <!-- Battle Panel (упрощён) -->
+        <div id="battlePanel" class="tab-panel">
+            <div class="quiz-container">
+                <div class="quiz-header">
+                    <div class="find-player" style="display: flex; gap: 12px; justify-content: center; margin-bottom: 20px;">
+                        <input type="text" id="opponentName" placeholder="Имя соперника" style="padding: 12px; border-radius: 40px; border: 2px solid #d4b48c; width: 250px;">
+                        <button id="findBattleBtn">🔍 Бросить вызов</button>
+                    </div>
+                    <div id="battleStatus"></div>
+                    <div id="battleQuestionArea"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Panel -->
+        <div id="leaderboardPanel" class="tab-panel">
+            <div class="leaderboard" id="leaderboardList">
+                <div style="text-align: center; padding: 40px;">Загрузка...</div>
+            </div>
+        </div>
+
+        <!-- Progress Panel -->
+        <div id="progressPanel" class="tab-panel">
+            <div class="progress-section" style="background: rgba(255,248,240,0.95); border-radius: 30px; padding: 25px;">
+                <h3>📈 Ваш прогресс</h3>
+                <div id="progressStats" class="progress-stats"></div>
+                <div style="text-align: center; margin-top: 25px;">
+                    <button id="resetAllProgress" class="btn-logout">🗑️ Сбросить прогресс</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основные модули -->
+    <script type="module">
+        import { appState } from './js/state.js';
+        import { initFirebase } from './js/firebase.js';
+        import { loadRadicals } from './js/radicals.js';
+        import { initAuth } from './js/auth.js';
+        import { initStudy } from './js/study.js';
+        import { initQuiz } from './js/quiz.js';
+        import { initBattle } from './js/battle.js';
+        import { initLeaderboard } from './js/leaderboard.js';
+        import { initProgress } from './js/progress.js';
+        import { initTabs, initSearch, initFilters, initExport } from './js/ui.js';
+        import { showToast } from './js/utils.js';
+        import { CONFIG } from './js/constants.js';
+
+        // Инициализация приложения
+        async function initApp() {
+            try {
+                // 1. Инициализация Firebase
+                const { auth } = initFirebase();
+                
+                // 2. Загрузка данных радикалов
+                const radicals = await loadRadicals();
+                appState.setRadicals(radicals);
+                
+                // 3. Загрузка сохранённого прогресса
+                appState.loadProgress();
+                
+                // 4. Инициализация модулей
+                initAuth(auth);
+                initStudy();
+                initQuiz();
+                initBattle();
+                initLeaderboard();
+                initProgress();
+                initTabs();
+                initSearch();
+                initFilters();
+                initExport();
+                
+                console.log('✅ Приложение инициализировано');
+            } catch (error) {
+                console.error('Ошибка инициализации:', error);
+                showToast('Ошибка загрузки приложения', 'error');
+            }
+        }
+        
+        // Запуск приложения
+        initApp();
+    </script>
+</body>
+</html>

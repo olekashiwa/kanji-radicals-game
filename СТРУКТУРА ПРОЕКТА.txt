@@ -1,0 +1,25 @@
+kanji-radicals-game/
+├── index.html
+├── .env.example
+├── .gitignore
+├── css/
+│   ├── main.css
+│   ├── cards.css
+│   ├── quiz.css
+│   └── responsive.css
+├── js/
+│   ├── constants.js
+│   ├── config.js
+│   ├── utils.js
+│   ├── firebase.js
+│   ├── state.js
+│   ├── radicals.js
+│   ├── auth.js
+│   ├── study.js
+│   ├── quiz.js
+│   ├── battle.js
+│   ├── leaderboard.js
+│   ├── progress.js
+│   └── ui.js
+└── data/
+    └── radicals.json

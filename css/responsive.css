@@ -1,0 +1,71 @@
+/* ==================== АДАПТИВНОСТЬ ==================== */
+@media (max-width: 768px) {
+    body {
+        padding: 12px;
+    }
+
+    .radicals-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tabs {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .tab-btn {
+        width: 100%;
+        max-width: 200px;
+    }
+
+    .game-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .player-stats {
+        justify-content: center;
+    }
+
+    .search-box input {
+        width: 100%;
+    }
+
+    .controls {
+        flex-direction: column;
+    }
+
+    .quiz-symbol {
+        font-size: 4rem;
+    }
+
+    .quiz-card {
+        padding: 25px 20px;
+    }
+
+    .quiz-option {
+        font-size: 0.95rem;
+        padding: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-card {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        min-width: 70px;
+    }
+
+    .radical-symbol {
+        font-size: 2.5rem;
+    }
+
+    .radical-name {
+        font-size: 1.1rem;
+    }
+
+    .reading {
+        font-size: 0.75rem;
+    }
+}
