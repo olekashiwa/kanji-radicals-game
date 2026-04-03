@@ -3,6 +3,9 @@
  * В production значения должны быть установлены через Netlify Environment Variables
  */
 
+/**
+ * Конфигурация Firebase
+ */
 
 export const firebaseConfig = {
     apiKey: "AIzaSyCkqnhA0D-cl6L3ehWelOtmjrv7mbAjjzE",
