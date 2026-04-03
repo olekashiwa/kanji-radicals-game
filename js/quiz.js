@@ -21,9 +21,6 @@ let drawingTest = null;
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 
-/**
- * Обновление отображения статистики
- */
 function updateStatsDisplay() {
     const totalCountEl = document.getElementById('totalCount');
     const correctCountEl = document.getElementById('correctCount');
@@ -40,9 +37,6 @@ function updateStatsDisplay() {
     }
 }
 
-/**
- * Получение правильного ответа для текущего вопроса
- */
 function getCorrectAnswer(radical) {
     switch (quizState.mode) {
         case CONFIG.QUIZ_MODES.MEANING:
@@ -56,9 +50,6 @@ function getCorrectAnswer(radical) {
     }
 }
 
-/**
- * Генерация вариантов ответов
- */
 function generateOptions(current) {
     const correctAnswer = getCorrectAnswer(current);
     const options = [correctAnswer];
@@ -86,9 +77,6 @@ function generateOptions(current) {
     return shuffleArray(options);
 }
 
-/**
- * Показать результат ответа
- */
 function showResult(isCorrect, message) {
     const feedbackEl = document.getElementById('quizFeedback');
     if (feedbackEl) {
@@ -96,26 +84,12 @@ function showResult(isCorrect, message) {
     }
 }
 
-/**
- * Переход к следующему вопросу
- */
 function nextQuestion() {
     quizState.currentIndex++;
     quizState.answered = false;
-    
-    // Скрываем режим рисования, если он был активен
-    const drawingMode = document.getElementById('drawingMode');
-    const quizContainerEl = document.getElementById('quizContainer');
-    
-    if (drawingMode) drawingMode.style.display = 'none';
-    if (quizContainerEl) quizContainerEl.style.display = 'block';
-    
-    renderQuiz();
+    renderQuiz(); // Просто перерисовываем
 }
 
-/**
- * Завершение квиза
- */
 function finishQuiz() {
     if (!quizContainer) return;
     
@@ -128,15 +102,13 @@ function finishQuiz() {
         </div>
     `;
     
-    // Сохраняем результат
     if (appState.currentUser && quizState.pointsEarned > 0) {
         updateUserStats(quizState.pointsEarned, quizState.correct * 2);
     }
 }
 
-/**
- * Отображение обычного вопроса (выбор из вариантов)
- */
+// ========== ОБЫЧНЫЙ РЕЖИМ (ВЫБОР ИЗ ВАРИАНТОВ) ==========
+
 function renderRegularQuiz() {
     if (!quizContainer) return;
     
@@ -168,21 +140,16 @@ function renderRegularQuiz() {
         </div>
     `;
     
-    // Обработчики выбора ответа
     document.querySelectorAll('.quiz-option').forEach(opt => {
         opt.onclick = () => handleAnswer(opt, correctAnswer);
     });
     
-    // Обработчик кнопки "Следующий"
     const nextBtn = document.getElementById('nextQuizBtn');
     if (nextBtn) {
         nextBtn.onclick = () => nextQuestion();
     }
 }
 
-/**
- * Обработка ответа пользователя (обычный режим)
- */
 function handleAnswer(element, correctAnswer) {
     if (quizState.answered) return;
     
@@ -198,7 +165,6 @@ function handleAnswer(element, correctAnswer) {
         element.classList.add('wrong');
         showResult(false, `Неправильно. Правильный ответ: ${correctAnswer}`);
         
-        // Подсветить правильный ответ
         document.querySelectorAll('.quiz-option').forEach(opt => {
             if (opt.innerText === correctAnswer) {
                 opt.classList.add('correct');
@@ -215,9 +181,6 @@ function handleAnswer(element, correctAnswer) {
 
 // ========== РЕЖИМ РИСОВАНИЯ ==========
 
-/**
- * Инициализация режима рисования
- */
 function initDrawingMode() {
     const drawingContainer = document.getElementById('drawingMode');
     if (!drawingContainer) return;
@@ -237,14 +200,15 @@ function initDrawingMode() {
             }
             
             updateStatsDisplay();
-            document.getElementById('checkDrawingBtn').disabled = true;
-            document.getElementById('clearCanvasBtn').disabled = true;
+            const checkBtn = document.getElementById('checkDrawingBtn');
+            const clearBtn = document.getElementById('clearCanvasBtn');
+            if (checkBtn) checkBtn.disabled = true;
+            if (clearBtn) clearBtn.disabled = true;
             
             setTimeout(() => nextQuestion(), 1500);
         });
     }
     
-    // Обработчики кнопок
     const clearBtn = document.getElementById('clearCanvasBtn');
     const checkBtn = document.getElementById('checkDrawingBtn');
     
@@ -264,14 +228,19 @@ function initDrawingMode() {
         checkBtn.disabled = false;
     }
     
-    // Очищаем холст при новом вопросе
     drawingTest?.clear();
+    
+    // Обновляем заголовок с текущим радикалом
+    if (quizState.currentIndex < quizState.questions.length) {
+        const current = quizState.questions[quizState.currentIndex];
+        const titleEl = drawingContainer.querySelector('h3');
+        if (titleEl) {
+            titleEl.innerHTML = `✍️ Напишите иероглиф: <span style="color:#e94560">${current.meaning || current.symbol}</span>`;
+        }
+    }
 }
 
-/**
- * Показать режим рисования
- */
-function showDrawingMode() {
+function renderDrawingMode() {
     const drawingMode = document.getElementById('drawingMode');
     const quizContainerEl = document.getElementById('quizContainer');
     
@@ -279,33 +248,10 @@ function showDrawingMode() {
     if (quizContainerEl) quizContainerEl.style.display = 'none';
     
     initDrawingMode();
-    
-    // Обновляем информацию о текущем радикале
-    if (quizState.currentIndex < quizState.questions.length) {
-        const current = quizState.questions[quizState.currentIndex];
-        const titleEl = drawingMode?.querySelector('h3');
-        if (titleEl) {
-            titleEl.innerHTML = `✍️ Напишите иероглиф: <span style="color:#e94560">${current.meaning || current.symbol}</span>`;
-        }
-    }
 }
 
-/**
- * Показать обычный режим тестирования
- */
-function showRegularMode() {
-    const drawingMode = document.getElementById('drawingMode');
-    const quizContainerEl = document.getElementById('quizContainer');
-    
-    if (drawingMode) drawingMode.style.display = 'none';
-    if (quizContainerEl) quizContainerEl.style.display = 'block';
-    
-    renderQuiz();
-}
+// ========== ОСНОВНАЯ ФУНКЦИЯ ОТРИСОВКИ ==========
 
-/**
- * Отображение текущего вопроса (выбор режима)
- */
 function renderQuiz() {
     if (quizState.currentIndex >= quizState.questions.length) {
         finishQuiz();
@@ -313,17 +259,21 @@ function renderQuiz() {
     }
     
     if (quizState.mode === CONFIG.QUIZ_MODES.WRITING) {
-        showDrawingMode();
+        renderDrawingMode();
     } else {
-        showRegularMode();
+        // Скрываем режим рисования, показываем обычный
+        const drawingMode = document.getElementById('drawingMode');
+        const quizContainerEl = document.getElementById('quizContainer');
+        
+        if (drawingMode) drawingMode.style.display = 'none';
+        if (quizContainerEl) quizContainerEl.style.display = 'block';
+        
+        renderRegularQuiz();
     }
 }
 
 // ========== НАЧАЛО НОВОГО КВИЗА ==========
 
-/**
- * Начало нового квиза
- */
 function startNewQuiz() {
     if (!appState.radicals.length) return;
     
@@ -334,7 +284,6 @@ function startNewQuiz() {
     quizState.answered = false;
     quizState.pointsEarned = 0;
     
-    // Сброс режима рисования
     if (drawingTest) {
         drawingTest.clear();
     }
@@ -345,18 +294,12 @@ function startNewQuiz() {
 
 // ========== ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ==========
 
-/**
- * Переключение режима тестирования
- */
 function switchQuizMode(mode) {
     quizState.mode = mode;
     quizState.answered = false;
     startNewQuiz();
 }
 
-/**
- * Инициализация кнопок переключения режимов
- */
 function initModeButtons() {
     const meaningBtn = document.querySelector('[data-quiz-mode="meaning"]');
     const readingBtn = document.querySelector('[data-quiz-mode="reading"]');
@@ -389,16 +332,12 @@ function initModeButtons() {
 
 // ========== ПУБЛИЧНАЯ ИНИЦИАЛИЗАЦИЯ ==========
 
-/**
- * Инициализация квиза
- */
 export function initQuiz() {
     quizContainer = document.getElementById('quizContainer');
     if (!quizContainer) return;
     
     initModeButtons();
     
-    // Подписка на изменения радикалов
     appState.subscribe(() => {
         const quizPanel = document.getElementById('quizPanel');
         if (quizPanel && quizPanel.classList.contains('active-panel')) {
