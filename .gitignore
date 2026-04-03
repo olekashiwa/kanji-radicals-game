@@ -22,4 +22,3 @@ desktop.ini
 npm-debug.log*
 
 # Firebase config (если храните ключи в файле)
-js/config.js
