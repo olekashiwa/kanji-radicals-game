@@ -1,10 +1,9 @@
-// js/drawing.js
-// Модуль рисования кандзи (рукописный ввод)
+// js/drawing.js (версия с PNG эталонами)
 
 export class DrawingTest {
     constructor(canvasId, onResult) {
         this.canvas = document.getElementById(canvasId);
-        this.ctx = this.canvas?.getContext('2d');
+        this.ctx = this.canvas?.getContext('2d', { willReadFrequently: true });
         this.onResult = onResult;
         this.isDrawing = false;
         this.lastX = 0;
@@ -17,19 +16,13 @@ export class DrawingTest {
     }
     
     initCanvas() {
-        // Устанавливаем размер canvas (адаптивно)
         const size = Math.min(window.innerWidth * 0.8, 400);
         this.canvas.width = size;
         this.canvas.height = size;
         this.canvas.style.width = `${size}px`;
         this.canvas.style.height = `${size}px`;
-        this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
-        
-        // Белый фон
         this.ctx.fillStyle = '#fff';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Настройка кисти
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
         this.ctx.lineWidth = 6;
@@ -37,13 +30,10 @@ export class DrawingTest {
     }
     
     initEvents() {
-        // Мышь
         this.canvas.addEventListener('mousedown', this.startDrawing.bind(this));
         this.canvas.addEventListener('mousemove', this.draw.bind(this));
         this.canvas.addEventListener('mouseup', this.stopDrawing.bind(this));
         this.canvas.addEventListener('mouseleave', this.stopDrawing.bind(this));
-        
-        // Touch (мобильные устройства)
         this.canvas.addEventListener('touchstart', this.startDrawingTouch.bind(this));
         this.canvas.addEventListener('touchmove', this.drawTouch.bind(this));
         this.canvas.addEventListener('touchend', this.stopDrawing.bind(this));
@@ -119,64 +109,63 @@ export class DrawingTest {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
-    getImageData() {
-        return this.canvas.toDataURL();
-    }
-    
-    // Проверка: пустой ли холст?
     isEmpty() {
         const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
         const pixels = imageData.data;
         for (let i = 0; i < pixels.length; i += 4) {
-            if (pixels[i+3] !== 0) return false; // есть непрозрачные пиксели
+            if (pixels[i+3] !== 0) return false;
         }
         return true;
     }
     
-    // Сравнение с эталонным изображением
     async compareWithReference(symbol) {
-        // 1. Если холст пуст → сразу неправильно
         if (this.isEmpty()) {
-            console.log('Холст пуст');
+            console.log(`❌ Холст пуст для ${symbol}`);
             return false;
         }
-
-        // 2. Пытаемся загрузить эталонное изображение
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.src = `images/kanji/${symbol}.png`;
         
         return new Promise((resolve) => {
-            img.onload = async () => {
-                // Создаём временный canvas с эталоном
+            const img = new Image();
+            img.onload = () => {
                 const refCanvas = document.createElement('canvas');
                 refCanvas.width = this.canvas.width;
                 refCanvas.height = this.canvas.height;
-                const refCtx = refCanvas.getContext('2d');
-                refCtx.drawImage(img, 0, 0, this.canvas.width, this.canvas.height);
+                const refCtx = refCanvas.getContext('2d', { willReadFrequently: true });
+                refCtx.drawImage(img, 0, 0, refCanvas.width, refCanvas.height);
                 
-                // Сравниваем пиксели через pixelmatch
                 const userData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-                const refData = refCtx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                const refData = refCtx.getImageData(0, 0, refCanvas.width, refCanvas.height);
                 
-                // pixelmatch доступен глобально
-                const mismatchedPixels = pixelmatch(
-                    userData.data, refData.data, null,
-                    this.canvas.width, this.canvas.height,
-                    { threshold: 0.2 }
-                );
-                
+                let mismatchCount = 0;
                 const totalPixels = this.canvas.width * this.canvas.height;
-                const matchPercent = (totalPixels - mismatchedPixels) / totalPixels * 100;
-                console.log(`Совпадение с ${symbol}: ${matchPercent.toFixed(1)}%`);
                 
-                resolve(matchPercent > 40);
+                for (let i = 0; i < userData.data.length; i += 4) {
+                    const userR = userData.data[i];
+                    const userG = userData.data[i+1];
+                    const userB = userData.data[i+2];
+                    const refR = refData.data[i];
+                    const refG = refData.data[i+1];
+                    const refB = refData.data[i+2];
+                    
+                    if (Math.abs(userR - refR) > 50 || 
+                        Math.abs(userG - refG) > 50 || 
+                        Math.abs(userB - refB) > 50) {
+                        mismatchCount++;
+                    }
+                }
+                
+                const matchPercent = (totalPixels - mismatchCount) / totalPixels * 100;
+                const isMatch = matchPercent > 35;
+                console.log(`📊 ${symbol}: совпадение ${matchPercent.toFixed(1)}% (${isMatch ? '✅' : '❌'})`);
+                resolve(isMatch);
             };
             
             img.onerror = () => {
-                console.warn(`Нет эталона для ${symbol}, проверяем только на пустоту`);
+                console.warn(`⚠️ Нет эталона для ${symbol}`);
                 resolve(!this.isEmpty());
             };
+            
+            img.src = `images/kanji/${symbol}.png`;
         });
     }
 }
