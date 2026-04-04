@@ -87,7 +87,7 @@ function showResult(isCorrect, message) {
 function nextQuestion() {
     quizState.currentIndex++;
     quizState.answered = false;
-    renderQuiz(); // Просто перерисовываем
+    renderQuiz();
 }
 
 function finishQuiz() {
@@ -217,10 +217,13 @@ function initDrawingMode() {
         clearBtn.disabled = false;
     }
     
+    // ========== ИСПРАВЛЕННЫЙ ОБРАБОТЧИК КНОПКИ ПРОВЕРИТЬ ==========
     if (checkBtn) {
-        checkBtn.onclick = () => {
+        checkBtn.onclick = async () => {
             if (drawingTest && !quizState.answered) {
-                const isValid = !drawingTest.isEmpty();
+                const current = quizState.questions[quizState.currentIndex];
+                // Используем сравнение с эталоном вместо простой проверки на пустоту
+                const isValid = await drawingTest.compareWithReference(current.symbol);
                 drawingTest.onResult(isValid);
                 drawingTest.clear();
             }
@@ -235,7 +238,7 @@ function initDrawingMode() {
         const current = quizState.questions[quizState.currentIndex];
         const titleEl = drawingContainer.querySelector('h3');
         if (titleEl) {
-            titleEl.innerHTML = `✍️ Напишите иероглиф: <span style="color:#e94560">${current.meaning || current.symbol}</span>`;
+            titleEl.innerHTML = `✍️ Напишите иероглиф: <span style="color:#e94560">${current.symbol} — ${current.meaning || current.symbol}</span>`;
         }
     }
 }
@@ -261,7 +264,6 @@ function renderQuiz() {
     if (quizState.mode === CONFIG.QUIZ_MODES.WRITING) {
         renderDrawingMode();
     } else {
-        // Скрываем режим рисования, показываем обычный
         const drawingMode = document.getElementById('drawingMode');
         const quizContainerEl = document.getElementById('quizContainer');
         
