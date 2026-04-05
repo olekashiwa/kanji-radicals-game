@@ -118,54 +118,58 @@ export class DrawingTest {
         return true;
     }
     
-    async compareWithReference(symbol) {
-        if (this.isEmpty()) {
-            console.log(`❌ Холст пуст для ${symbol}`);
-            return false;
-        }
-        
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-                const refCanvas = document.createElement('canvas');
-                refCanvas.width = this.canvas.width;
-                refCanvas.height = this.canvas.height;
-                const refCtx = refCanvas.getContext('2d', { willReadFrequently: true });
-                refCtx.drawImage(img, 0, 0, refCanvas.width, refCanvas.height);
-                
-                const userData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-                const refData = refCtx.getImageData(0, 0, refCanvas.width, refCanvas.height);
-                
-                let mismatchCount = 0;
-                const totalPixels = this.canvas.width * this.canvas.height;
-                
-                for (let i = 0; i < userData.data.length; i += 4) {
-                    const userR = userData.data[i];
-                    const userG = userData.data[i+1];
-                    const userB = userData.data[i+2];
-                    const refR = refData.data[i];
-                    const refG = refData.data[i+1];
-                    const refB = refData.data[i+2];
-                    
-                    if (Math.abs(userR - refR) > 50 || 
-                        Math.abs(userG - refG) > 50 || 
-                        Math.abs(userB - refB) > 50) {
-                        mismatchCount++;
-                    }
-                }
-                
-                const matchPercent = (totalPixels - mismatchCount) / totalPixels * 100;
-                const isMatch = matchPercent > 35;
-                console.log(`📊 ${symbol}: совпадение ${matchPercent.toFixed(1)}% (${isMatch ? '✅' : '❌'})`);
-                resolve(isMatch);
-            };
-            
-            img.onerror = () => {
-                console.warn(`⚠️ Нет эталона для ${symbol}`);
-                resolve(!this.isEmpty());
-            };
-            
-            img.src = `images/kanji/${symbol}.png`;
-        });
+  async compareWithReference(symbol) {
+    // 1. Если холст пуст → сразу неправильно
+    if (this.isEmpty()) {
+        console.log(`❌ Холст пуст для ${symbol}`);
+        return false;
     }
+
+    // Ожидаем загрузку PNG эталона
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            // Создаём временный холст для эталона и МАСШТАБИРУЕМ его под размер холста пользователя
+            const refCanvas = document.createElement('canvas');
+            refCanvas.width = this.canvas.width;
+            refCanvas.height = this.canvas.height;
+            const refCtx = refCanvas.getContext('2d', { willReadFrequently: true });
+            refCtx.drawImage(img, 0, 0, refCanvas.width, refCanvas.height);
+
+            // Получаем данные пикселей рисунка и эталона
+            const userData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+            const refData = refCtx.getImageData(0, 0, refCanvas.width, refCanvas.height);
+
+            let mismatchCount = 0;
+            const totalPixels = this.canvas.width * this.canvas.height;
+
+            // Сравниваем пиксели
+            for (let i = 0; i < userData.data.length; i += 4) {
+                // Упрощаем: проверяем, нарисовано ли что-то пользователем (userData[i+3] > 0)
+                // и есть ли что-то в эталоне (refData[i+3] > 0)
+                const userDrawn = userData.data[i+3] > 0;
+                const refDrawn = refData.data[i+3] > 0;
+
+                // Если один из пикселей "пустой", а другой "закрашенный" — считаем за несовпадение
+                if (userDrawn !== refDrawn) {
+                    mismatchCount++;
+                }
+            }
+
+            const matchPercent = (totalPixels - mismatchCount) / totalPixels * 100;
+            // Снижаем порог для мобильных устройств
+            const isMatch = matchPercent > 20; // <- ПРОСТОЙ ПОРОГ
+            
+            console.log(`📊 ${symbol}: совпадение ${matchPercent.toFixed(1)}% (${isMatch ? '✅' : '❌'})`);
+            resolve(isMatch);
+        };
+        img.onerror = (err) => {
+            console.warn(`⚠️ Нет эталона для ${symbol}`, err);
+            // Если эталона нет, считаем, что пользователь нарисовал всё, что хотел (старое поведение)
+            resolve(!this.isEmpty());
+        };
+        // Убедитесь, что путь к PNG правильный!
+        img.src = `images/kanji/${symbol}.png`;
+    });
+}
 }
