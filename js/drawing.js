@@ -158,7 +158,7 @@ export class DrawingTest {
 
             const matchPercent = (totalPixels - mismatchCount) / totalPixels * 100;
             // Снижаем порог для мобильных устройств
-            const isMatch = matchPercent > 20; // <- ПРОСТОЙ ПОРОГ
+            const isMatch = matchPercent > 5; // <- ПРОСТОЙ ПОРОГ
             
             console.log(`📊 ${symbol}: совпадение ${matchPercent.toFixed(1)}% (${isMatch ? '✅' : '❌'})`);
             resolve(isMatch);
